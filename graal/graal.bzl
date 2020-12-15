@@ -103,10 +103,16 @@ def _graal_binary_implementation(ctx):
         variables = c_compile_variables,
     ))
 
+    outputs = [binary]
+    dump_path = ""
+    if ctx.outputs.dump_path != None:
+        outputs = outputs + [ctx.outputs.dump_path]
+        dump_path = ctx.outputs.dump_path.path
+
     ctx.actions.run(
         inputs = classpath_depset,
-        outputs = [binary],
-        arguments = [c_compiler_path, args],
+        outputs = outputs,
+        arguments = [c_compiler_path, dump_path, args],
         executable = ctx.executable._compile_script,
         tools = [graal, ctx.attr._cc_toolchain.files_to_run],
         env = env,
@@ -116,7 +122,7 @@ def _graal_binary_implementation(ctx):
 
     return [DefaultInfo(
         executable = binary,
-        files = depset([binary]),
+        files = depset(outputs),
         runfiles = ctx.runfiles(
             collect_data = True,
             collect_default = True,
@@ -133,6 +139,7 @@ graal_binary = rule(
         "main_class": attr.string(),
         "initialize_at_build_time": attr.string_list(),
         "native_image_features": attr.string_list(),
+        "dump_path": attr.output(),
         "_graal": attr.label(
             cfg = "host",
             default = "@graal//:bin/native-image",
